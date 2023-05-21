@@ -241,6 +241,20 @@ void clearCurr(char* str, int len) {
 		str[j] = NULL;
 }
 
+void cleanNull(char num[]) {
+	int count_nl = 0;
+	for (int r = 0; r < strlen(num); r++) {
+		if (num[r] == '0')
+			count_nl++;
+		else
+			break;
+	int j = 0;
+	while (j != (strlen(num) - count_nl)) {
+		num[j] = num[j + count_nl];
+		j++;
+	}
+}
+
 void calc(char out[], double* res, int size) {
 	char num1[max_word_len] = "";
 	char num2[max_word_len] = "";
@@ -276,6 +290,8 @@ void calc(char out[], double* res, int size) {
 
 				_strrev(num1);
 				_strrev(num2);
+				cleanNull(num1);
+				cleanNull(num2);
 				check(num1);
 				check(num2);
 				change_val(num1, num2, out[i]);
