@@ -8,4 +8,5 @@ void check(char num[]);
 void antiTrash(char num[]);
 void change_val(char num1[], char num2[], char symb);
 void clearCurr(char* str, int len);
+void cleanNull(char num[]);
 void calc(char out[], double* res, int size);
