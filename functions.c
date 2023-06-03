@@ -32,15 +32,23 @@ int priority(char s) {
 	}
 }
 
+int countVars(char arr[]) {
+	int count = 0;
+	for (int i = 0; i <= strlen(arr); i++) {
+		if (isalpha(arr[i]) && !(isalpha(arr[i + 1])))
+			count++;
+	}
+	return count;
+}
 
-void convert(char input[], char* out, int* size) {
+
+void convert(char input[], char* out, int* size, int* count_v) {
 	char stack[max_stack_len] = "";
 	char result[max_exp_len] = "";
 	char tmp[max_stack_len] = "";
 	int t = 0, k = 0, p = 0;
 	int num_flag = 0, unary_minus = 0;
 	for (int i = 0; i < strlen(input); i++) {
-
 		if (isOper(input[i])) {
 			if (num_flag) {
 				result[p++] = ' ';
@@ -127,65 +135,92 @@ void convert(char input[], char* out, int* size) {
 
 	p++;
 	memmove(out, result, p);
+	*count_v = countVars(result);
 	*size = p - 1;
 }
 
-void check(char num[]) {
-	if (memcmp(num, "abc", 3) == 0)
-		_gcvt(5.34, 4, num);
 
-	else if (memcmp(num, "xxx", 3) == 0)
-		_gcvt(-97.12, 6, num);
-
-	else if (memcmp(num, "z", 1) == 0)
-		_gcvt(23.23, 5, num);
-
-	else if (memcmp(num, "asd", 3) == 0)
-		_gcvt(-2.5, 4, num);
-
-	else if (isalpha(num[0])) {
-		printf("I don't know such a variable that you entered");
-		exit(1);
+void check(char var[], char num[], int* count) {
+	char tmp[max_word_len] = "";
+	int k = 0, f = 0;
+	for (int i = 0; i < strlen(var); i++) {
+		if (isalpha(var[i])) {
+			tmp[k++] = var[i];
+			continue;
+		}
+		if (var[i] == '=') {
+			if (memcmp(num, tmp, k) == 0) {
+				for (int j = 0; j < k; j++)
+					tmp[j] = NULL;
+				k = 0;
+				i = i + 1;
+				while (isdigit(var[i]) || var[i] == '.' || var[i] == '-')
+					tmp[k++] = var[i++];
+				f = 1;
+				break;
+			}
+			for (int j = 0; j < k; j++)
+				tmp[j] = NULL;
+			k = 0;
+		}
+	}
+	if (f) {
+		for (int j = 0; j < max_word_len - 2; j++)
+			num[j] = NULL;
+		double new = atof(tmp);
+		_gcvt(new, k, num);
+		*count -= 1;
 	}
 }
 
-isE(char num[], double* now, int* flag) {
+void isE(char num[], double* now, int* flag) {
 	char so_small_big[max_exp_len] = "";
-	char sign[1];
 	char power[max_word_len - 1] = "";
 	int c = 0, p = 0, pow_num = 0;
-	int flag_e = 0, symb = 0;
-	for (int j = 0; j < max_exp_len - 3; j++) {
+	int flag_e = 0, symb = 0, flag_p = max_exp_len;
+	for (int j = 0; j < max_exp_len - 2; j++) {
 		if (num[j] == ' ' || num[j] == NULL)
 			break;
-
 		if (flag_e && isOper(num[j])) {
-			sign[0] = num[j];
 			symb = 1;
+			continue;
 		}
-
-		else if (flag_e && symb)
+		else if (flag_e && symb) {
 			power[p++] = num[j];
-
-		else if (num[j] == 'e')
+			continue;
+		}
+		else if (num[j] == 'e') {
 			flag_e = 1;
-
-		else if (isdigit(num[j]) || num[j] == '.')
+			continue;
+		}
+		else if ((isdigit(num[j]) || num[j] == '.' || num[j] == '-') && (j - flag_p) < 3) {
+			if (num[j] == '.')
+				flag_p = j;
 			so_small_big[c++] = num[j];
+		}
 	}
 
 	if (flag_e) {
 		*flag = 1;
 		*now = atof(so_small_big);
 		pow_num = atoi(power);
-
-		if (sign[0] == '+')
-			*now = (*now) * pow(10, pow_num);
-		else
-			*now = (*now) * pow(10, (-pow_num));
-
-		*now = (round((*now) * 100000)) / 100000;
-		_gcvt((*now), max_word_len - 3, num);
+		for (int l = 0; l < max_word_len - 2; l++) {	
+			num[l] = NULL;
+		}
+		int j = 0, k = 0;
+		if (so_small_big[0] == '-')
+			num[j++] = '-';
+		while (pow_num) {
+			num[j++] = '0';
+			if (j == 1 && so_small_big[0] != '-' || (j == 2 && so_small_big[0] == '-'))
+				num[j++] = '.';
+			pow_num--;
+		}
+		for (int i = 0; i < c; i++) {
+			if (so_small_big[i] == '-' || so_small_big[i] == '.')
+				continue;
+			num[j++] = so_small_big[i];
+		}
 	}
 }
 
@@ -202,12 +237,12 @@ void antiTrash(char num[]) {
 	}
 
 	double now = atof(num);
-	now = (round(now * 10000)) / 10000;
-	_gcvt(now, max_word_len - 3, num);
+	now = (round(now * 1000)) / 1000;
+	_gcvt(now, max_word_len - 2, num);
 }
 
 
-void change_val(char num1[], char num2[], char symb) {
+void change_val(char num1[], char num2[], char symb) {//164.55/(100/45-asd^3)
 	double new = 0;
 
 	if (symb == '-')
@@ -221,17 +256,16 @@ void change_val(char num1[], char num2[], char symb) {
 	else if (symb == '^')
 		new = pow(atof(num1), atof(num2));
 
-	for (int j = 0; j < strlen(num1); j++)
+	for (int j = 0; j < max_word_len - 2; j++)
 		num1[j] = NULL;
-
-	char tmp[max_exp_len] = "";
-	_gcvt(new, max_exp_len - 7, tmp);
+	char temp[max_word_len] = "";
+	_gcvt(new, max_word_len/2 , temp);
 	int f = 0;
-	isE(tmp, &new, &f);
+	isE(temp, &new, &f);
 	if (f)
-		memmove(num1, tmp, max_word_len - 3);
-	else {
-		_gcvt(new, max_word_len - 3, num1);
+		memmove(num1, temp, max_word_len - 2);
+	else{
+		_gcvt(new, max_word_len - 2, num1);
 		antiTrash(num1);
 	}
 }
@@ -248,14 +282,15 @@ void cleanNull(char num[]) {
 			count_nl++;
 		else
 			break;
-	int j = 0;
-	while (j != (strlen(num) - count_nl)) {
-		num[j] = num[j + count_nl];
-		j++;
+		int j = 0;
+		while (j != (strlen(num) - count_nl)) {
+			num[j] = num[j + count_nl];
+			j++;
+		}
 	}
 }
 
-void calc(char out[], double* res, int size) {
+void calc(char out[], double* res, int size, int count_v, char var[]) {
 	char num1[max_word_len] = "";
 	char num2[max_word_len] = "";
 	char end[max_word_len] = "";
@@ -263,7 +298,8 @@ void calc(char out[], double* res, int size) {
 	int flag = 1, flag_oper = 0;
 	int k = 0, p = 0, t = 0;
 	int from = 0, to = 0;
-	for (int i = 0; i < max_exp_len - 3; i++) {
+
+	for (int i = 0; i < max_exp_len - 2; i++) {
 		if (out[i] != ' ') {
 			if (isOper(out[i])) {
 				flag_oper = 1;
@@ -292,15 +328,19 @@ void calc(char out[], double* res, int size) {
 				_strrev(num2);
 				cleanNull(num1);
 				cleanNull(num2);
-				check(num1);
-				check(num2);
+
+				if (count_v > 0) {
+					check(var, num1, &count_v);
+					check(var, num2, &count_v);
+				}
 				change_val(num1, num2, out[i]);
 				out[i] = ' ';
-
 				if ((to - from + 1) <= strlen(num1)) {
 					for (int j = 0; j <= size; j++) {
-						if (j != from)
+						if (j != from) {
 							tmp[t++] = out[j];
+						}
+
 						else {
 							while ((to - from + 1) <= strlen(num1)) {
 								tmp[t++] = ' ';
@@ -309,7 +349,8 @@ void calc(char out[], double* res, int size) {
 						}
 					}
 
-					memmove(out, tmp, max_exp_len - 3);
+					memmove(out, tmp, max_exp_len - 2);
+					clearCurr(tmp, max_exp_len - 2);
 					t = 0;
 				}
 				to = i;
@@ -318,10 +359,10 @@ void calc(char out[], double* res, int size) {
 				for (int j = from; j < from + strlen(num1); j++)
 					out[j] = num1[k++];
 
-				memmove(end, num1, max_word_len - 3);
+				memmove(end, num1, max_word_len - 2);
 
-				clearCurr(num1, strlen(num1));
-				clearCurr(num2, strlen(num2));
+				clearCurr(num1, max_word_len - 2);
+				clearCurr(num2, max_word_len - 2);
 
 				k = 0;
 				p = 0;
@@ -337,7 +378,8 @@ void calc(char out[], double* res, int size) {
 			if (isalnum(out[i]) || out[i] == '.')
 				num1[i] = out[i];
 		}
-		check(num1);
+		if (count_v > 0)
+			check(var, num1,&count_v);
 		for (int i = 0; i < strlen(num1); i++)
 			printf("%c", num1[i]);
 		exit(0);
